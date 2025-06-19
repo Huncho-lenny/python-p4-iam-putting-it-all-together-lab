@@ -7,8 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from config import app, db, api
 from models import User, Recipe
 
-
 class Signup(Resource):
+    
     def post(self):
         data = request.get_json()
 
@@ -46,11 +46,12 @@ class Signup(Resource):
 
 
 class CheckSession(Resource):
+    
     def get(self):
         user_id = session.get("user_id")
 
         if user_id:
-            user = db.session.get(User, user_id)  # SQLAlchemy 2.0 compliant
+            user = User.query.get(user_id)
             if user:
                 return {
                     "id": user.id,
@@ -63,6 +64,7 @@ class CheckSession(Resource):
 
 
 class Login(Resource):
+    
     def post(self):
         data = request.get_json()
         username = data.get("username")
@@ -72,6 +74,7 @@ class Login(Resource):
 
         if user and user.authenticate(password):
             session["user_id"] = user.id
+
             return {
                 "id": user.id,
                 "username": user.username,
@@ -83,14 +86,16 @@ class Login(Resource):
 
 
 class Logout(Resource):
+    
     def delete(self):
         if session.get("user_id"):
-            session.pop("user_id", None)  # 🧼 Better session clearing
-            return {}, 204
+            session["user_id"] = None
+            return {}, 204  # No Content
         return {"error": "Unauthorized"}, 401
 
 
 class RecipeIndex(Resource):
+    
     def get(self):
         if not session.get("user_id"):
             return {"error": "Unauthorized"}, 401
@@ -125,7 +130,6 @@ class RecipeIndex(Resource):
                 minutes_to_complete=data.get("minutes_to_complete"),
                 user_id=session["user_id"]
             )
-
             db.session.add(new_recipe)
             db.session.commit()
 
@@ -144,7 +148,6 @@ class RecipeIndex(Resource):
 
         except Exception as e:
             db.session.rollback()
-            print("Error creating recipe:", e)  # 🛠️ Helpful for debugging
             return {"errors": ["validation errors"]}, 422
 
 
